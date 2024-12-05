@@ -1,0 +1,193 @@
+---
+title: ""
+author: ""
+date: ""
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+```{r}
+library(ggplot2)
+library(reshape2)
+library(knitr)
+library(dplyr)
+library(tidyr)
+library(forecast)
+```
+
+
+```{r, fig.align='center'}
+include_graphics("Img/carsa.jpg")
+```
+
+
+
+```{r}
+armenia <- read.csv("Data/armenia.csv")
+world <- read.csv("Data/worldwide.csv")
+
+cars <- rbind(world, armenia)
+
+cars <- cars[, c("Region", "Market", "Chart", "Name", "Unit", "X2015", "X2016", "X2017", "X2018", "X2019", 
+                 "X2020", "X2021", "X2022", "X2023", "X2024")]
+
+colnames(cars)[6:15] <- 2015:2024
+```
+
+```{r}
+cars_total_avg <- cars[cars$Market == "Passenger Cars" & cars$Chart == "Average Price" 
+               & cars$Name != "Average", c("Region", "Name", 2015:2024)]
+
+#ggplot(data = cars_total_avg, aes(x = ))
+```
+
+
+```{r}
+cars_avg <- cars[cars$Market == "Passenger Cars" & cars$Chart == "Average Price" 
+               & cars$Name != "Average", c("Region", "Name", 2015:2024)]
+
+cars_avg <- melt(data = cars_avg, id.vars = c("Region", "Name"))
+cars_avg <- cars_avg[cars_avg$Name != "Luxury Cars", ]
+cars_avg$value <- as.numeric(cars_avg$value)
+
+ggplot(data = cars_avg[cars_avg$Region == "Armenia", ], aes(x=Name, y=value, fill=variable)) + 
+  geom_bar(stat = "identity", position = "dodge") +
+  scale_fill_brewer(palette = "Paired") +
+  theme_minimal() +
+  theme(axis.ticks.y = element_blank(), axis.title.x = element_blank(),
+        legend.position = "bottom", axis.text.x = element_text(angle = 90, hjust = 1)) +
+  labs(title = "Average Car Prices in Armenia by Categories", subtitle = "2015 - 2024",
+       y = "Price (Thousand USD)", fill = "Year")
+
+arm_avg <- cars_avg[cars_avg$Region == "Armenia",]
+ggplot(arm_avg, aes(x=variable, y=value, color=Name)) + 
+  geom_point()
+```
+\pagebreak
+
+```{r}
+ggplot(data = cars_avg, aes(x=Name, y=value, color=Region)) + 
+  geom_point() +
+  scale_fill_brewer(palette = "Paired") +
+  theme_minimal() +
+  theme(axis.ticks.y = element_blank(), axis.title.x = element_blank(),
+        legend.position = "top", axis.text.x = element_text(angle = 90, hjust = 1)) +
+  labs(title = "Average Car Prices per Category", subtitle = "World vs Armenia",
+       y = "Price (Thousand USD)")
+```
+
+\pagebreak
+
+```{r}
+sales <- cars[cars$Region == "Worldwide" & cars$Chart == "Vehicle Sales by make" & cars$Unit == "percent", 
+              c("Name", 2024)]
+
+
+ggplot(data = sales, aes(x = "", y = as.numeric(`2024`), fill = Name)) + 
+  geom_bar(stat = "identity", show.legend = F) +
+  geom_text(aes(label = Name), position = position_stack(vjust = 0.5), size = 2.2) +
+  coord_polar(theta = "y") +
+  theme_classic() +
+  theme(aspect.ratio = 0.7, axis.title = element_blank(), 
+        axis.line = element_blank(), axis.ticks = element_blank()) +
+  labs(title = "Top 10 Car Brands by World Sales", subtitle = "2024") +
+  scale_fill_brewer(palette = "Spectral")
+```
+
+\pagebreak
+
+```{r}
+cars_data_arm <- read.csv("Data/ARM_cars.csv")
+
+get_brand <- function(car) {
+  brand <- sub(" .*", "", car)
+  if (brand %in% c("VAZ(Lada)", "Niva 2121")) {
+    brand <- "Lada"
+  }
+  else if (brand == "Land") {
+    brand <- "Land Rover"
+  }
+  return(brand)
+}
+
+cars_data_arm$Brand <- sapply(cars_data_arm$Car, get_brand)
+brand_counts <- sort(table(cars_data_arm$Brand), decreasing = TRUE)
+
+top_brands_arm <- head(brand_counts, 7)
+other_brands_arm <- sum(brand_counts[-(1:7)])
+brand_counts_top10_arm <- c(top_brands_arm, "Other" = other_brands_arm)
+
+total_counts_arm <- sum(brand_counts_top10_arm)
+percentages_arm <- round(100 * brand_counts_top10_arm / total_counts_arm, 1)
+
+labels_arm <- paste0(names(brand_counts_top10_arm), " (", percentages_arm, "%)")
+legend_labels_arm <- paste0(names(brand_counts_top10_arm), " - ", brand_counts_top10_arm, " cars")
+
+
+colors <- colorRampPalette(c("#8dd3c7", "#ffffb3", "#bebada", "#fb8072", "#80b1d3", "#fdb462", "#b3de69", "#fccde5", "#d9d9d9", "#bc80bd", "#ccebc5"))
+
+par(mar = c(2, 2, 2, 2))
+pie(
+  brand_counts_top10_arm, 
+  labels = labels_arm, 
+  col = colors(length(brand_counts_top10_arm)),
+  main = "Car Brand Distribution For Armenia (Top 7 and Other)",
+)
+
+```
+
+```{r}
+carss <- read.csv('Data/carss.csv')
+carss$date <- as.Date(carss$date)
+carss
+ggplot(data = carss, aes(x = date)) +
+  geom_line(aes(y = import_amount, color = "Import"), linewidth = 0.7) +
+  geom_line(aes(y = export_amount, color = "Export"), linewidth = 0.7) +
+  labs(x = "Date", y = "Amount", color = "Type") +
+  ggtitle("Import and Export Amounts Over Time") +
+  theme_light()
+```
+
+```{r}
+order <- c(1, 0, 2)
+seasonal_order <- c(1, 0, 2, 24)
+
+model <- auto.arima(carss$import_amount, seasonal = TRUE, D = 0, max.p = order[1], max.q = order[3],
+                    max.P = seasonal_order[1], max.Q = seasonal_order[3], max.order = 5,
+                    max.d = 0, max.D = 0, start.p = 0, start.q = 0,
+                    start.P = 0, start.Q = 0, stationary = TRUE,
+                    ic = "aicc", allowdrift = FALSE, allowmean = TRUE,
+                    trace = FALSE)
+last_date <- max(carss$date)
+forecast_steps <- 24
+forecast <- forecast(model, h = forecast_steps)
+
+forecast_df <- data.frame(
+  date = seq(last_date + 1, by = "month", length.out = forecast_steps),
+  import_amount = as.vector(forecast$mean),
+  lower_ci = as.vector(forecast$lower[, 2]),
+  upper_ci = as.vector(forecast$upper[, 2])
+)
+
+last_historical_date <- last_date
+last_historical_value <- carss$import_amount[carss$date == last_historical_date]
+
+plot_data <- data.frame(
+  date = carss$date,
+  import_amount = carss$import_amount
+)
+
+ggplot(plot_data, aes(x = date, y = import_amount)) +
+  geom_line(color = "navy") +
+  geom_line(data = forecast_df, aes(x = date, y = import_amount), color = "maroon") +
+  geom_ribbon(data = forecast_df, aes(x = date, ymin = lower_ci, ymax = upper_ci), fill = "pink", alpha = 0.3) +
+  geom_segment(aes(x = last_historical_date, y = last_historical_value, xend = min(forecast_df$date), yend = forecast_df$import_amount[1]), color = "navy") +
+  labs(title = "Import Amount of Cars and 2-Year Prediction",
+       x = "Date",
+       y = "Import Amount") +
+  theme_minimal()
+```
+

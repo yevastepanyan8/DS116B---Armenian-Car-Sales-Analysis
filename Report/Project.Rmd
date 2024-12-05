@@ -1,0 +1,273 @@
+---
+title: ""
+author: ""
+date: ""
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+```
+
+```{r}
+library(ggplot2)
+library(reshape2)
+library(knitr)
+library(dplyr)
+library(tidyr)
+library(ggfortify)
+library(forecast)
+```
+
+```{r}
+armenia <- read.csv("Data/armenia.csv")
+world <- read.csv("Data/worldwide.csv")
+
+cars <- rbind(world, armenia)
+
+cars <- cars[, c("Region", "Market", "Chart", "Name", "Unit", "X2015", "X2016", "X2017", "X2018", "X2019", 
+                 "X2020", "X2021", "X2022", "X2023", "X2024")]
+
+colnames(cars)[6:15] <- 2015:2024
+```
+
+
+```{r}
+cars_price_avg <- cars[cars$Market == "Passenger Cars" & cars$Chart == "Average Price" 
+               & cars$Name != "Average", c("Region", "Name", 2015:2024)]
+
+cars_price_avg <- melt(data = cars_price_avg, id.vars = c("Region", "Name"))
+cars_price_avg$value <- as.numeric(cars_price_avg$value)
+cars_price_avg$variable <- as.numeric(as.character(cars_price_avg$variable))
+
+arm_price_avg <- cars_price_avg[cars_price_avg$Region == "Armenia",]
+
+visualize_avg_price <- function(df) {
+ggplot(df, aes(x=variable, y=value, color=Name)) + 
+  geom_point() +
+  geom_line() +
+  scale_x_continuous(breaks = c(2015:2024)) +
+  theme_minimal() +
+  labs(title = "Average Car Prices in Armenia by Car Type", subtitle = "2015 - 2024",
+       y = "Price (Thousand USD)", color = "Car Type", x = "Year")
+}
+
+visualize_avg_price(arm_price_avg)
+visualize_avg_price(arm_price_avg[arm_price_avg$Name != "Luxury Cars",])
+```
+
+```{r}
+cars_revenue_avg <- cars[cars$Market == "Passenger Cars" & cars$Chart == "Revenue" 
+               & cars$Name != "Total", c("Region", "Name", 2015:2024)]
+
+cars_revenue_avg <- melt(data = cars_revenue_avg, id.vars = c("Region", "Name"))
+cars_revenue_avg$value <- as.numeric(cars_revenue_avg$value)
+cars_revenue_avg$variable <- as.numeric(as.character(cars_revenue_avg$variable))
+
+arm_revenue_avg <- cars_revenue_avg[cars_revenue_avg$Region == "Armenia",]
+
+ggplot(arm_revenue_avg, aes(x=variable, y=value, fill=Name)) + 
+  geom_bar(stat="identity", position = "fill") +
+  theme_minimal() +
+  scale_fill_brewer(palette="Set3") +
+  scale_x_continuous(breaks = c(2015:2024)) +
+  labs(title = "Car Revenue in Armenia by Categories", subtitle = "2015 - 2024",
+       y = "Percentage", color = "Category", x = "Year")
+```
+\pagebreak
+
+```{r}
+ggplot(data = cars_price_avg[!cars_price_avg$Name %in% c("Executive Cars", "Full-Size Vans"),], 
+       aes(x=Name, y=value, color=Region)) + 
+  geom_point() +
+  theme_minimal() +
+  theme(axis.ticks.y = element_blank(), axis.title.x = element_blank(),
+        legend.position = "top", axis.text.x = element_text(angle = 90, hjust = 1)) +
+  labs(title = "Average Car Prices per Category", subtitle = "World vs Armenia",
+       y = "Price (Thousand USD)")
+```
+
+```{r}
+world_map <- map_data("world")
+world_map <- world_map[world_map$region %in% c("Armenia", "Georgia", "Azerbaijan"),
+                       c("long", "lat", "group", "region")]
+
+georgia <- read.csv("Data/georgia.csv")
+azerbaijan <- read.csv("Data/azerbaijan.csv")
+
+avg_prices <- rbind(armenia, georgia, azerbaijan)
+colnames(avg_prices)[9:18] <- 2015:2024
+
+avg_prices <- avg_prices %>%
+  filter(Market=="Passenger Cars" & Chart=="Average Price" & Name=="Average") %>%
+  select(c(1, 13:18))
+
+avg_prices = melt(avg_prices, id.vars = c("Region"))
+
+avg_prices <- world_map %>%
+  left_join(avg_prices, by=c("region" = "Region"))
+
+avg_prices$value <- as.numeric(avg_prices$value)
+
+ggplot(data=avg_prices) + 
+  geom_polygon(aes(x=long, y=lat, group=group, fill=region)) +
+  geom_label(data=avg_prices[avg_prices$region == "Armenia",],
+             aes(x=mean(long) - 0.5, y=mean(lat) + 0.2, label=value), size = 2) +
+    geom_label(data=avg_prices[avg_prices$region == "Georgia",],
+             aes(x=mean(long), y=mean(lat), label=value), size = 2) +
+    geom_label(data=avg_prices[avg_prices$region == "Azerbaijan",],
+             aes(x=mean(long) + 1, y=mean(lat), label=value), size = 2) +
+  facet_wrap(~variable) +
+  coord_fixed() +
+  theme_void() +
+  theme(legend.position = "bottom") +
+  labs(title = "Average Car Prices in the South Caucasus (Thousand USD)", 
+       subtitle = "2019-2024", fill = "Country")
+```
+
+```{r}
+imports <- read.csv('Data/imports.csv')
+imports$date <- as.Date(imports$date)
+
+ggplot(data = imports, aes(x = date)) +
+  geom_line(aes(y = import_amount, color = "Import"), color = "navy", linewidth = 0.5) +
+  geom_line(aes(y = export_amount, color = "Export"), color = "maroon", linewidth = 0.5) +
+  labs(x = "Date", y = "Amount", color = "Type") +
+  ggtitle("Import and Export Amounts Over Time") +
+  theme_minimal()
+```
+
+```{r}
+import_ts <- ts(imports$import_amount, start = c(2007, 1), frequency = 12)
+
+decomposed_import_ts <- decompose(import_ts)
+autoplot(decomposed_import_ts) +
+  theme_minimal(base_size = 10) +
+  labs(title = "Seasonal Decomposition of Import Data",
+    x = "Time",
+    y = "Value")
+```
+
+```{r}
+model <- Arima(imports$import_amount, order = c(1, 0, 2))
+
+last_date <- max(imports$date)
+
+forecast_steps <- 12
+forecast <- forecast(model, h = forecast_steps)
+
+forecast_df <- data.frame(
+  date = seq(last_date + 1, by = "month", length.out = forecast_steps),
+  import_amount = as.vector(forecast$mean),
+  lower_ci = as.vector(forecast$lower[, 2]),
+  upper_ci = as.vector(forecast$upper[, 2])
+)
+
+plot_data <- data.frame(
+  date = imports$date,
+  import_amount = imports$import_amount
+)
+
+ggplot(plot_data, aes(x = date, y = import_amount)) +
+  geom_line(color = "navy") +
+  geom_line(data = forecast_df, aes(x = date, y = import_amount), color = "maroon") +
+  geom_ribbon(data = forecast_df, aes(x = date, ymin = lower_ci, ymax = upper_ci), fill = "pink", alpha = 0.3) +
+  labs(title = "Import Amount of Cars and 1-Year Prediction",
+       x = "Date",
+       y = "Import Amount") +
+  theme_minimal()
+```
+
+```{r}
+cars_data_arm <- read.csv("Data/arm_prices.csv")
+
+get_brand <- function(car) {
+  brand <- sub(" .*", "", car)
+  if (brand %in% c("VAZ(Lada)", "Niva 2121")) {
+    brand <- "Lada"
+  }
+  else if (brand == "Land") {
+    brand <- "Land Rover"
+  }
+  return(brand)
+}
+
+cars_data_arm$Brand <- sapply(cars_data_arm$Car, get_brand)
+brand_counts <- sort(table(cars_data_arm$Brand), decreasing = TRUE)
+
+top_brands_arm <- head(brand_counts, 10)
+other_brands_arm <- sum(brand_counts[-(1:10)])
+brand_counts_top10_arm <- c(top_brands_arm, "Other" = other_brands_arm)
+
+total_counts_arm <- sum(brand_counts_top10_arm)
+percentages_arm <- round(100 * brand_counts_top10_arm / total_counts_arm, 1)
+
+labels_arm <- paste0(names(brand_counts_top10_arm), " (", percentages_arm, "%)")
+legend_labels_arm <- paste0(names(brand_counts_top10_arm), " - ", brand_counts_top10_arm, " cars")
+
+
+colors <- colorRampPalette(c("#8dd3c7", "#ffffb3", "#bebada", "#fb8072", "#80b1d3", "#fdb462", "#b3de69", "#fccde5", "#d9d9d9", "#bc80bd", "#ccebc5"))
+
+par(mar = c(2, 2, 2, 2))
+pie(
+  brand_counts_top10_arm, 
+  labels = labels_arm, 
+  col = colors(length(brand_counts_top10_arm)),
+  main = "Car Brand Distribution For Armenia (Top 10)",
+  cex = 0.6
+)
+```
+
+
+```{r}
+sales <- cars[cars$Region == "Worldwide" & 
+              cars$Chart == "Vehicle Sales by make" & 
+              cars$Unit == "percent", 
+              c("Name", "2024")]
+
+sales$Percentage <- round(as.numeric(sales$`2024`), 1)
+sales <- sales[order(-sales$Percentage), ]
+
+top_sales <- head(sales, 10)
+
+sales_combined <- top_sales
+
+labels <- paste0(sales_combined$Name, " (", sales_combined$Percentage, "%)")
+
+colors <- colorRampPalette(c("#8dd3c7", "#ffffb3", "#bebada", "#fb8072", "#80b1d3", 
+                             "#fdb462", "#b3de69", "#fccde5", "#d9d9d9", "#bc80bd", 
+                             "#ccebc5"))(nrow(sales_combined))
+
+par(mar = c(2, 2, 2, 2))
+pie(
+  sales_combined$Percentage, 
+  labels = labels, 
+  col = colors,
+  main = "Top 10 Car Brands by World Sales (2024)",
+  cex = 0.8
+)
+```
+
+```{r}
+arm_prices <- read.csv("Data/arm_prices.csv")
+arm_prices$Brand <- sapply(arm_prices$Car.Name, get_brand)
+
+brand_avg_prices <- arm_prices %>%
+  group_by(Brand) %>%
+  summarise(avg_price = mean(Price, na.rm = TRUE), count = n()) %>%
+  filter(count >= 5)
+
+ggplot(brand_avg_prices, aes(x = reorder(Brand, avg_price), y = avg_price)) +
+  geom_col(fill = "#888aaa", color = "black") +
+  labs(title = "Average Car Prices by Brand",
+    x = "Brand",
+    y = "Average Price (USD)") +
+  theme_minimal(base_size = 10) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, size = 8),
+    axis.text.y = element_text(size = 8),
+    panel.grid.major.y = element_line(color = "gray80"),
+    panel.grid.minor.y = element_blank()) +
+  scale_y_continuous(labels = scales::dollar_format())
+```
+
+

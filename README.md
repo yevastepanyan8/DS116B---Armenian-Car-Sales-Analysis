@@ -17,15 +17,6 @@ The datasets used in this project include:
 - **Statista-Passenger Car Sales**: Provides data on global car sales.
 - **Kaggle-Armenia Car Sale Listings**: Contains detailed information on car sales in Armenia.
 
-## Methodology
-
-The analysis employs various time series modeling techniques, including:
-- **Moving Average (MA) Models**: To smooth out irregularities in the data.
-- **Seasonal Autoregressive Integrated Moving Average (SARIMA) Models**: To account for seasonality in the data.
-- **Vector Autoregressive (VAR) Models**: To analyze the relationships between multiple time series.
-- **Unit Root Tests**: To determine the stationarity of the time series data.
-- **GARCH Models**: To analyze the volatility of car prices.
-
 ## Installation
 
 To run this project, you will need to have R and RStudio installed on your machine. You can install the required packages using the following commands in R:

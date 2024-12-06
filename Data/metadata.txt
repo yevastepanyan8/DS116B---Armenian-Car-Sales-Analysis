@@ -1,0 +1,26 @@
+﻿worldwide.csv
+    • Columns: 23 (Region, Market, Brand, Chart, Name, Unit, Source,    years 2014–2029)
+    • Rows: 1,264
+    • Sample Data:
+        ◦ Row 1: Region - Worldwide, Market - Passenger Cars, Chart - Average Price, Name - Average, Unit - thousand USD, 2023 - 28.95
+        ◦ Row 2: Region - Worldwide, Market - Passenger Cars, Chart - Average Price, Name - Executive Cars, Unit - thousand USD, 2023 - 50.3
+        ◦ Row 3: Region - Worldwide, Market - Passenger Cars, Chart - Average Price, Name - Full-Size Vans, Unit - thousand USD, 2023 - 18.16
+
+armenia.csv, georgia.csv, Azerbaijan.csv
+Same as for worldwide.csv with specified regions of Armenia, Georgia and Azerbaijan.
+
+imports.csv
+    • Columns: 5 (product_id, product_name, import_amount, export_amount, date)
+    • Rows: 204
+    • Sample Data:
+        ◦ Row 1: Product ID - 8703, Product Name - Cars, Import Amount - 2302, Export Amount - 66, Date - 2007-01-01
+        ◦ Row 2: Product ID - 8703, Product Name - Cars, Import Amount - 2311, Export Amount - 97, Date - 2007-02-01
+        ◦ Row 3: Product ID - 8703, Product Name - Cars, Import Amount - 3167, Export Amount - 142, Date - 2007-03-01
+
+arm_prices.csv
+    • Columns: 6 (Car Name, Year, Region, FuelType, Mileage, Price)
+    • Rows: 7,995
+    • Sample Data:
+        ◦ Row 1: Car Name - Ford Transit, Year - 2002, Region - Goris, Fuel Type - Diesel, Mileage - 215,000, Price - 12,000
+        ◦ Row 2: Car Name - Ford Focus, Year - 2017, Region - Ijevan, Fuel Type - Gasoline, Mileage - 72,000, Price - 11,500
+    • Row 3: Car Name - Opel Vectra, Year - 1998, Region - Armavir, Fuel Type - Gasoline, Mileage - 466,000, Price - 4,000

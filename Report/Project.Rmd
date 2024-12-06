@@ -1,0 +1,346 @@
+---
+title: "Car Market Trends in Armenia"
+author: 
+  - "Yeva Stepanyan"
+  - "Mher Beginyan"
+  - "Ruben Galoyan"
+date: "2024-12-06"
+output: 
+  pdf_document:
+    toc: true
+    number_sections: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+
+library(ggplot2)
+library(reshape2)
+library(knitr)
+library(dplyr)
+library(tidyr)
+library(ggfortify)
+library(forecast)
+```
+
+# Car Market Trends in Armenia
+
+## Abstract:
+This paper presents a data-driven analysis of global and regional car market trends, with a focus on Armenia’s automotive sector in comparison to global patterns. Using data visualizations, we explore key trends in car sales, imports, and exports from 2015 to 2024. We identify significant shifts in market behaviors due to taxation changes, geopolitical events, and global economic crises, particularly during the 2019 peak in imports to Armenia, followed by a rapid decline during the COVID-19 pandemic. The paper also compares the market shares of major car brands globally and in Armenia, revealing distinct consumer preferences. The findings highlight how external factors such as political sanctions and economic instability influence automotive trade.
+The purpose of this analysis is to provide car dealers with a comprehensive understanding of the evolving market dynamics in Armenia, enabling them to make informed decisions and strategically position themselves within the competitive landscape. These insights provide valuable implications for stakeholders in both global and local automotive markets.
+
+Keywords: Data Visualization, Automotive Market, Global Trade, Armenia, Car Imports, Market Trends.
+
+\pagebreak
+
+## Introduction
+
+The automotive industry is a key component of global trade, influencing economies and shaping consumer behavior. Understanding market trends in this sector is crucial for businesses, policymakers, and consumers alike. Previous research has focused on the global automotive market, but few studies have explored how specific geopolitical and economic factors affect smaller, regional markets such as Armenia. This paper aims to fill this gap by analyzing car import and export trends in Armenia in comparison to the global market.
+
+In particular, we examine the significant fluctuations in imports and exports, with a focus on the years 2019 and 2022, when notable political events such as new taxation policies and the Russia-Ukraine conflict impacted market dynamics. The question driving this research is: How do geopolitical factors, taxation policies, and global economic events influence car market trends, particularly in the context of Armenia?
+
+The motivation for this research stems from the increasing complexity of global trade in the automotive sector, where economic sanctions, trade policies, and shifting consumer preferences have reshaped market behaviors. By analyzing these trends using data visualizations, we aim to provide a clearer understanding of these forces and their impact on both global and regional markets.
+
+## Methods
+
+The research focuses on analyzing car import and export data spanning from 2015 to 2024, with a particular emphasis on Armenia and global market trends.
+The key methodologies used in the research include:
+Data Collection and Sources: The analysis utilized datasets from Statista-Passenger Car Sales and Kaggle-Armenia Car Sale Listings. These sources provided comprehensive data on car sales, imports, and exports, which were essential for understanding market dynamics.
+Data Visualization: The project incorporated data visualizations to illustrate key trends in car imports and exports. This method helped in identifying significant shifts in market behaviors and consumer preferences over the years.
+Comparative Analysis: The project compared the market shares of major car brands globally and in Armenia, revealing distinct consumer preferences and the impact of geopolitical and economic factors on automotive trade.
+
+## Research Question
+
+The central question addressed by this paper is: How do taxation policies, geopolitical conflicts, and global economic trends impact the automotive trade, particularly in Armenia compared to global trends?
+
+\pagebreak
+
+```{r}
+armenia <- read.csv("Data/armenia.csv")
+world <- read.csv("Data/worldwide.csv")
+
+cars <- rbind(world, armenia)
+
+cars <- cars[, c("Region", "Market", "Chart", "Name", "Unit", "X2015", "X2016", "X2017", "X2018", "X2019", 
+                 "X2020", "X2021", "X2022", "X2023", "X2024")]
+
+colnames(cars)[6:15] <- 2015:2024
+```
+
+## Average Car Prices by Car Type: Analysis
+
+```{r}
+cars_price_avg <- cars[cars$Market == "Passenger Cars" & cars$Chart == "Average Price" 
+               & cars$Name != "Average", c("Region", "Name", 2015:2024)]
+
+cars_price_avg <- melt(data = cars_price_avg, id.vars = c("Region", "Name"))
+cars_price_avg$value <- as.numeric(cars_price_avg$value)
+cars_price_avg$variable <- as.numeric(as.character(cars_price_avg$variable))
+
+arm_price_avg <- cars_price_avg[cars_price_avg$Region == "Armenia",]
+
+visualize_avg_price <- function(df) {
+ggplot(df, aes(x=variable, y=value, color=Name)) + 
+  geom_point() +
+  geom_line() +
+  scale_x_continuous(breaks = c(2015:2024)) +
+  theme_minimal() +
+  labs(title = "Average Car Prices in Armenia by Car Type", subtitle = "2015 - 2024",
+       y = "Price (Thousand USD)", color = "Car Type", x = "Year")
+}
+
+visualize_avg_price(arm_price_avg)
+```
+
+Our first plot shows average car prices in Armenia by Car Type. The car type categories are Luxury cars, SUVs, Large cars, medium cars mini cars, minivans, pickup trucks, small cars, sports cars.
+ 
+The first thing to notice here is that the average price for luxury cars significantly exceeds the average prices for other categories which makes it hard to gain insights from other types so we decided to look at the other categories separately, removing the luxury cars segment.
+
+```{r}
+visualize_avg_price(arm_price_avg[arm_price_avg$Name != "Luxury Cars",])
+```
+
+After removing luxury cars, we see the difference between the rest of the categories. We can notice a clear pattern of decrease and abrupt increase during 2020-2021 period. This is mostly due to COVID-19 and the inflation and supply chain disruptions caused by it worldwide. The leader here are SUVs.
+
+\pagebreak
+
+
+```{r}
+cars_revenue_avg <- cars[cars$Market == "Passenger Cars" & cars$Chart == "Revenue" 
+               & cars$Name != "Total", c("Region", "Name", 2015:2024)]
+
+cars_revenue_avg <- melt(data = cars_revenue_avg, id.vars = c("Region", "Name"))
+cars_revenue_avg$value <- as.numeric(cars_revenue_avg$value)
+cars_revenue_avg$variable <- as.numeric(as.character(cars_revenue_avg$variable))
+
+arm_revenue_avg <- cars_revenue_avg[cars_revenue_avg$Region == "Armenia",]
+
+ggplot(arm_revenue_avg, aes(x=variable, y=value, fill=Name)) + 
+  geom_bar(stat="identity", position = "fill") +
+  theme_minimal() +
+  scale_fill_brewer(palette="Set3") +
+  scale_x_continuous(breaks = c(2015:2024)) +
+  labs(title = "Car Revenue in Armenia by Categories", subtitle = "2015 - 2024",
+       y = "Percentage", color = "Category", x = "Year")
+```
+
+Although we saw in the first plot that the average prices of Luxury Cars are significantly exceeding those of other car types, we can see now, in the plot of Car Revenue in Armenia by Categories that the most revenue comes from selling SUVs indicating a bigger market and usage share. Small cars and Mini cars are the least popular categories among cars in Armenia.
+
+\pagebreak
+
+```{r}
+ggplot(data = cars_price_avg[!cars_price_avg$Name %in% c("Executive Cars", "Full-Size Vans"),], 
+       aes(x=Name, y=value, color=Region)) + 
+  geom_point() +
+  theme_minimal() +
+  theme(axis.ticks.y = element_blank(), axis.title.x = element_blank(),
+        legend.position = "top", axis.text.x = element_text(angle = 90, hjust = 1)) +
+  labs(title = "Average Car Prices per Category", subtitle = "World vs Armenia",
+       y = "Price (Thousand USD)")
+```
+
+The graph highlights some fascinating differences in car prices between Armenia and the global market, showing how various economic and cultural factors play a role.
+
+One clear trend is that luxury cars are significantly more expensive in Armenia. This could be due to high import taxes and tariffs, which increase their cost. Additionally, the small market size for luxury cars in Armenia might mean less competition, giving dealerships the ability to charge higher prices. On top of that, luxury cars are often seen as a status symbol, so sellers may price them higher because people are willing to pay more for exclusivity.
+
+On the other hand, sports cars are actually cheaper in Armenia, which might seem surprising at first. This could be because they’re less popular—Armenia’s roads and infrastructure might not be ideal for high-performance cars, and the weather could make them impractical. Dealerships might lower prices to attract buyers. It’s also possible that tax policies or the types of sports cars sold in Armenia (which might not be the same high-end models sold elsewhere) contribute to the lower prices.
+
+Finally, SUV prices don’t show much difference between Armenia and the global market. This is likely because SUVs are popular everywhere, and their pricing is more standardized globally. In Armenia, SUVs are highly practical forrugged terrainsand everyday use, so demand aligns with global trends. Plus, a steady supply and healthy competition in the SUV market likely keep prices stable.
+
+Overall, these trends reflect a mix of taxes, demand, supply, and cultural preferences that shape car pricing in Armenia compared to the rest of the world.
+
+\pagebreak
+
+```{r}
+world_map <- map_data("world")
+world_map <- world_map[world_map$region %in% c("Armenia", "Georgia", "Azerbaijan"),
+                       c("long", "lat", "group", "region")]
+
+georgia <- read.csv("Data/georgia.csv")
+azerbaijan <- read.csv("Data/azerbaijan.csv")
+
+avg_prices <- rbind(armenia, georgia, azerbaijan)
+colnames(avg_prices)[9:18] <- 2015:2024
+
+avg_prices <- avg_prices %>%
+  filter(Market=="Passenger Cars" & Chart=="Average Price" & Name=="Average") %>%
+  select(c(1, 13:18))
+
+avg_prices = melt(avg_prices, id.vars = c("Region"))
+
+avg_prices <- world_map %>%
+  left_join(avg_prices, by=c("region" = "Region"))
+
+avg_prices$value <- as.numeric(avg_prices$value)
+
+ggplot(data=avg_prices) + 
+  geom_polygon(aes(x=long, y=lat, group=group, fill=region)) +
+  geom_label(data=avg_prices[avg_prices$region == "Armenia",],
+             aes(x=mean(long) - 0.5, y=mean(lat) + 0.2, label=value), size = 2) +
+    geom_label(data=avg_prices[avg_prices$region == "Georgia",],
+             aes(x=mean(long), y=mean(lat), label=value), size = 2) +
+    geom_label(data=avg_prices[avg_prices$region == "Azerbaijan",],
+             aes(x=mean(long) + 1, y=mean(lat), label=value), size = 2) +
+  facet_wrap(~variable) +
+  coord_fixed() +
+  theme_void() +
+  theme(legend.position = "bottom") +
+  labs(title = "Average Car Prices in the South Caucasus (Thousand USD)", 
+       subtitle = "2019-2024", fill = "Country")
+```
+
+In the 4th plot, regional plotting of Average car prices in Armenia, Georgia, Azerbaijan across the last 6 years are demonstrated. The Average car prices in Armenia remain the highest, followed by Georgia.
+
+Armenia’s position as the most expensive market for cars highlights its status as a premium market. Several factors likely contribute to this. Higher import duties and taxes on vehicles, especially luxury or new models, play a significant role in inflating prices. Additionally, Armenian consumers may have a preference for higher-end or newer vehicles, which increases the average price. The market may also suffer from limited competition, with fewer dealerships or brands driving up costs due to reduced price pressure.
+
+In contrast, Georgia and Azerbaijan maintain more stable and lower car prices. This could be attributed to greater market competition, with more dealerships and access to imports from nearby countries like Turkey or Russia. Lower taxes and fewer import restrictions in these countries also contribute to keeping prices down.
+
+Overall, the data paints a clear picture of how regulatory policies, consumer preferences, and market dynamics shape car prices differently across the region. Armenia’s high prices reflect a combination of economic barriers and market exclusivity, while Georgia and Azerbaijan benefit from more accessible and competitive car markets.
+
+\pagebreak
+
+## Analysis of Import and Export of Cars in Armenia
+
+```{r}
+imports <- read.csv('Data/imports.csv')
+imports$date <- as.Date(imports$date)
+
+ggplot(data = imports, aes(x = date)) +
+  geom_line(aes(y = import_amount, color = "Import"), color = "navy", linewidth = 0.5) +
+  geom_line(aes(y = export_amount, color = "Export"), color = "maroon", linewidth = 0.5) +
+  labs(x = "Date", y = "Amount", color = "Type") +
+  ggtitle("Import and Export Amounts Over Time") +
+  theme_minimal()
+```
+
+From the import-export data, we observe a significant peak in 2019, attributed to changes in Russian taxation policies, which prompted an increase in car imports from Armenia. This was followed by a sharp decline during the COVID-19 pandemic as global supply chains were disrupted. Since 2022, there has been a recovery in imports and exports, largely due to the economic sanctions imposed on Russia and the shift toward Armenia as an alternative trade route for vehicles.
+
+This finding underscores the influence of geopolitical events such as the Russia-Ukraine conflict on trade dynamics. The sanctions against Russia have led to an increased reliance on alternative markets like Armenia, demonstrating how external political pressures can significantly alter trade routes.
+
+\pagebreak
+
+## Car Brand Distribution: Worldwide vs Armenia
+
+```{r}
+sales <- cars[cars$Region == "Worldwide" & 
+              cars$Chart == "Vehicle Sales by make" & 
+              cars$Unit == "percent", 
+              c("Name", "2024")]
+
+sales$Percentage <- round(as.numeric(sales$`2024`), 1)
+sales <- sales[order(-sales$Percentage), ]
+
+top_sales <- head(sales, 10)
+
+sales_combined <- top_sales
+
+labels <- paste0(sales_combined$Name, " (", sales_combined$Percentage, "%)")
+
+colors <- colorRampPalette(c("#8dd3c7", "#ffffb3", "#bebada", "#fb8072", "#80b1d3", 
+                             "#fdb462", "#b3de69", "#fccde5", "#d9d9d9", "#bc80bd", 
+                             "#ccebc5"))(nrow(sales_combined))
+
+par(mar = c(2, 2, 2, 2))
+pie(
+  sales_combined$Percentage, 
+  labels = labels, 
+  col = colors,
+  main = "Top 10 Car Brands by World Sales (2024)",
+  cex = 0.8
+)
+```
+
+The global market is characterized by a balanced distribution of car brands, with Toyota leading at 10.9% of total sales. The next eight brands, including Nissan, Honda, and BMW, have relatively similar market shares, suggesting a highly competitive and fragmented global market.
+
+```{r}
+cars_data_arm <- read.csv("Data/arm_prices.csv")
+
+get_brand <- function(car) {
+  brand <- sub(" .*", "", car)
+  if (brand %in% c("VAZ(Lada)", "Niva 2121")) {
+    brand <- "Lada"
+  }
+  else if (brand == "Land") {
+    brand <- "Land Rover"
+  }
+  return(brand)
+}
+
+cars_data_arm$Brand <- sapply(cars_data_arm$Car, get_brand)
+brand_counts <- sort(table(cars_data_arm$Brand), decreasing = TRUE)
+
+top_brands_arm <- head(brand_counts, 10)
+other_brands_arm <- sum(brand_counts[-(1:10)])
+brand_counts_top10_arm <- c(top_brands_arm, "Other" = other_brands_arm)
+
+total_counts_arm <- sum(brand_counts_top10_arm)
+percentages_arm <- round(100 * brand_counts_top10_arm / total_counts_arm, 1)
+
+labels_arm <- paste0(names(brand_counts_top10_arm), " (", percentages_arm, "%)")
+legend_labels_arm <- paste0(names(brand_counts_top10_arm), " - ", brand_counts_top10_arm, " cars")
+
+
+colors <- colorRampPalette(c("#8dd3c7", "#ffffb3", "#bebada", "#fb8072", "#80b1d3", "#fdb462", "#b3de69", "#fccde5", "#d9d9d9", "#bc80bd", "#ccebc5"))
+
+par(mar = c(2, 2, 2, 2))
+pie(
+  brand_counts_top10_arm, 
+  labels = labels_arm, 
+  col = colors(length(brand_counts_top10_arm)),
+  main = "Car Brand Distribution For Armenia (Top 10)",
+  cex = 0.6
+)
+```
+
+In contrast, the Armenian market exhibits more pronounced brand preferences. Mercedes-Benz holds the largest share in Armenia at 15.2%, followed by Nissan at 9.4%. This indicates a strong brand loyalty to Mercedes-Benz in Armenia, which is not as apparent in global markets. Interestingly, Toyota and BMW each hold a similar share of around 8.5%, reflecting regional preferences for both mainstream and premium brands.
+
+\pagebreak
+
+## Average Prices by Brand: Armenian Data
+
+```{r}
+arm_prices <- read.csv("Data/arm_prices.csv")
+arm_prices$Brand <- sapply(arm_prices$Car.Name, get_brand)
+
+brand_avg_prices <- arm_prices %>%
+  group_by(Brand) %>%
+  summarise(avg_price = mean(Price, na.rm = TRUE), count = n()) %>%
+  filter(count >= 5)
+
+ggplot(brand_avg_prices, aes(x = reorder(Brand, avg_price), y = avg_price)) +
+  geom_col(fill = "#888aaa", color = "black") +
+  labs(title = "Average Car Prices by Brand",
+    x = "Brand",
+    y = "Average Price (USD)") +
+  theme_minimal(base_size = 10) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, size = 8),
+    axis.text.y = element_text(size = 8),
+    panel.grid.major.y = element_line(color = "gray80"),
+    panel.grid.minor.y = element_blank()) +
+  scale_y_continuous(labels = scales::dollar_format())
+```
+
+This study demonstrates the significant impact of geopolitical factors, such as taxation policies and international sanctions, on the global and regional car markets. In particular, the Armenian market exhibits clear brand preferences and is highly responsive to external events, as seen in the spikes in imports during 2019 and the subsequent rise in exports post-2022. These insights contribute to a better understanding of how political and economic events influence consumer behavior and trade flows in the automotive sector.
+
+## Conclusion
+
+This project has provided an analysis of the automotive market trends in Armenia, highlighting the intricate dynamics that shape the sector from 2015 to 2024. By employing data-driven methodologies and advanced time series modeling techniques, we have identified key factors influencing car sales, imports, and exports, particularly in the context of global economic fluctuations and regional developments.
+
+The findings reveal that Armenia's automotive market is significantly affected by external factors such as taxation changes, geopolitical events, and economic crises. Notably, the peak in car imports in 2019, followed by a sharp decline during the COVID-19 pandemic, underscores the vulnerability of the market to global disruptions. Furthermore, the analysis of major car brands' market shares has illustrated distinct consumer preferences, indicating a strong inclination towards specific brands that resonate with local buyers.
+
+The implications of this research are particularly relevant for car dealers and stakeholders in the automotive sector. By understanding the underlying trends and the impact of external factors, dealers can make informed decisions regarding inventory management, pricing strategies, and market positioning. Additionally, the insights gained from this analysis can guide policymakers in formulating strategies that foster a more resilient automotive market in Armenia.
+In conclusion, this project not only contributes to the existing body of knowledge regarding Armenia's automotive sector but also serves as a practical resource for industry stakeholders. The integration of real-world data has provided a comprehensive understanding of market trends, equipping car dealers with the necessary tools to navigate the complexities of the automotive landscape effectively.
+
+
+
+\newpage
+
+
+
+## References
+
+Carnegie Endowment for International Peace. (2024, October). The EU and the South Caucasus: Geoeconomics at play. Retrieved from https://carnegieendowment.org/research/2024/10/the-eu-and-the-south-caucasus-geoeconomics-at-play?lang=en&center=middle-east
+
+Azatutyun. (2024). Armenian Car Re-Exports Hit New Record In 2023. Retrieved from https://www.azatutyun.am/a/32788588.html
+
+Statista. (2024). Passenger cars: Armenia, Georgia, Azerbaijan, World. Retrieved from https://www.statista.com/outlook/mmo/passenger-cars/armenia?currency=usd&locale=en#unit-sales

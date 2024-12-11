@@ -1,14 +1,17 @@
 ---
 title: "Car Market Trends in Armenia"
-author: 
-  - "Yeva Stepanyan"
-  - "Mher Beginyan"
-  - "Ruben Galoyan"
+author:
+- Yeva Stepanyan
+- Mher Beginyan
+- Ruben Galoyan
 date: "2024-12-06"
-output: 
+output:
+  html_document:
+    toc: yes
+    df_print: paged
   pdf_document:
-    toc: true
-    number_sections: true
+    toc: yes
+    number_sections: yes
 ---
 
 ```{r setup, include=FALSE}
@@ -56,8 +59,8 @@ The central question addressed by this paper is: How do taxation policies, geopo
 \pagebreak
 
 ```{r}
-armenia <- read.csv("Data/armenia.csv")
-world <- read.csv("Data/worldwide.csv")
+armenia <- read.csv("../Data/armenia.csv")
+world <- read.csv("../Data/worldwide.csv")
 
 cars <- rbind(world, armenia)
 
@@ -80,13 +83,13 @@ cars_price_avg$variable <- as.numeric(as.character(cars_price_avg$variable))
 arm_price_avg <- cars_price_avg[cars_price_avg$Region == "Armenia",]
 
 visualize_avg_price <- function(df) {
-ggplot(df, aes(x=variable, y=value, color=Name)) + 
+ggplot(df, aes(x=variable, y=log(value), color=Name)) + 
   geom_point() +
   geom_line() +
   scale_x_continuous(breaks = c(2015:2024)) +
   theme_minimal() +
   labs(title = "Average Car Prices in Armenia by Car Type", subtitle = "2015 - 2024",
-       y = "Price (Thousand USD)", color = "Car Type", x = "Year")
+       y = "log(Price) (Thousand USD)", color = "Car Type", x = "Year")
 }
 
 visualize_avg_price(arm_price_avg)
@@ -156,8 +159,8 @@ world_map <- map_data("world")
 world_map <- world_map[world_map$region %in% c("Armenia", "Georgia", "Azerbaijan"),
                        c("long", "lat", "group", "region")]
 
-georgia <- read.csv("Data/georgia.csv")
-azerbaijan <- read.csv("Data/azerbaijan.csv")
+georgia <- read.csv("../Data/georgia.csv")
+azerbaijan <- read.csv("../Data/azerbaijan.csv")
 
 avg_prices <- rbind(armenia, georgia, azerbaijan)
 colnames(avg_prices)[9:18] <- 2015:2024
@@ -202,7 +205,7 @@ Overall, the data paints a clear picture of how regulatory policies, consumer pr
 ## Analysis of Import and Export of Cars in Armenia
 
 ```{r}
-imports <- read.csv('Data/imports.csv')
+imports <- read.csv('../Data/imports.csv')
 imports$date <- as.Date(imports$date)
 
 ggplot(data = imports, aes(x = date)) +
@@ -253,7 +256,7 @@ pie(
 The global market is characterized by a balanced distribution of car brands, with Toyota leading at 10.9% of total sales. The next eight brands, including Nissan, Honda, and BMW, have relatively similar market shares, suggesting a highly competitive and fragmented global market.
 
 ```{r}
-cars_data_arm <- read.csv("Data/arm_prices.csv")
+cars_data_arm <- read.csv("../Data/arm_prices.csv")
 
 get_brand <- function(car) {
   brand <- sub(" .*", "", car)
@@ -299,7 +302,7 @@ In contrast, the Armenian market exhibits more pronounced brand preferences. Mer
 ## Average Prices by Brand: Armenian Data
 
 ```{r}
-arm_prices <- read.csv("Data/arm_prices.csv")
+arm_prices <- read.csv("../Data/arm_prices.csv")
 arm_prices$Brand <- sapply(arm_prices$Car.Name, get_brand)
 
 brand_avg_prices <- arm_prices %>%
